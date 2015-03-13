@@ -5,10 +5,12 @@ mod.value('THROTTLE_MILLISECONDS', null)
 mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE_MILLISECONDS', \
                                   ($rootScope, $window, $interval, THROTTLE_MILLISECONDS) ->
   scope:
-    infiniteScroll: '&'
+    infiniteScroll: '&',
+    infiniteScrollTop: '&'
     infiniteScrollContainer: '='
     infiniteScrollDistance: '='
     infiniteScrollDisabled: '='
+    infiniteScrollTopDisabled: '='
     infiniteScrollUseDocumentBottom: '=',
     infiniteScrollListenForEvent: '@'
 
@@ -17,6 +19,7 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
 
     scrollDistance = null
     scrollEnabled = null
+    scrollTopEnabled = null
     checkWhenEnabled = null
     container = null
     immediateCheck = true
@@ -62,6 +65,9 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
       remaining = elementBottom - containerBottom
       shouldScroll = remaining <= height(container) * scrollDistance + 1
 
+      remainingTop = containerTopOffset - offsetTop(elem)
+      shouldScrollTop = remainingTop <= height(container) * scrollDistance + 1
+
       if shouldScroll
         checkWhenEnabled = true
 
@@ -70,6 +76,14 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
             scope.infiniteScroll()
           else
             scope.$apply(scope.infiniteScroll)
+      else if shouldScrollTop
+        checkWhenEnabled = true
+
+        if scrollTopEnabled
+          if scope.$$phase || $rootScope.$$phase
+            scope.infiniteScrollTop()
+          else
+            scope.$apply(scope.infiniteScrollTop)
       else
         checkWhenEnabled = false
 
@@ -136,6 +150,15 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
     scope.$watch 'infiniteScrollDisabled', handleInfiniteScrollDisabled
     # If I don't explicitly call the handler here, tests fail. Don't know why yet.
     handleInfiniteScrollDisabled scope.infiniteScrollDisabled
+
+    handleinfiniteScrollTopDisabled = (v) ->
+          scrollTopEnabled = !v
+          if scrollTopEnabled && checkWhenEnabled
+            checkWhenEnabled = false
+            handler()
+
+    scope.$watch 'infiniteScrollTopDisabled', handleinfiniteScrollTopDisabled
+    handleinfiniteScrollTopDisabled scope.infiniteScrollTopDisabled
 
     # use the bottom of the document instead of the element's bottom.
     # This useful when the element does not have a height due to its
