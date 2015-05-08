@@ -31,6 +31,9 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
 
       if isNaN(elem.offsetHeight) then elem.document.documentElement.clientHeight else elem.offsetHeight
 
+    isVisible = (elem) ->
+      elem[0].offsetWidth and elem[0].offsetHeight
+
     offsetTop = (elem) ->
       if not elem[0].getBoundingClientRect or elem.css('none')
         return
@@ -49,21 +52,24 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
     # with a boolean that is set to true when the function is
     # called in order to throttle the function call.
     handler = ->
-      if container == windowElement
-        containerBottom = height(container) + pageYOffset(container[0].document.documentElement)
-        elementBottom = offsetTop(elem) + height(elem)
+      if isVisible(elem)
+        if container == windowElement
+          containerBottom = height(container) + pageYOffset(container[0].document.documentElement)
+          elementBottom = offsetTop(elem) + height(elem)
+        else
+          containerBottom = height(container)
+          containerTopOffset = 0
+          if offsetTop(container) != undefined
+            containerTopOffset = offsetTop(container)
+          elementBottom = offsetTop(elem) - containerTopOffset + height(elem)
+
+        if(useDocumentBottom)
+          elementBottom = height((elem[0].ownerDocument || elem[0].document).documentElement)
+
+        remaining = elementBottom - containerBottom
+        shouldScroll = remaining <= height(container) * scrollDistance + 1
       else
-        containerBottom = height(container)
-        containerTopOffset = 0
-        if offsetTop(container) != undefined
-          containerTopOffset = offsetTop(container)
-        elementBottom = offsetTop(elem) - containerTopOffset + height(elem)
-
-      if(useDocumentBottom)
-        elementBottom = height((elem[0].ownerDocument || elem[0].document).documentElement)
-
-      remaining = elementBottom - containerBottom
-      shouldScroll = remaining <= height(container) * scrollDistance + 1
+        shouldScroll = false
 
       remainingTop = containerTopOffset - offsetTop(elem)
       shouldScrollTop = remainingTop <= height(container) * scrollDistance + 1

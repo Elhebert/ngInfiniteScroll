@@ -9,6 +9,9 @@ getTemplate = (angularVersion, container, attrs, throttle) ->
         html, body {
           height: 100%;
         }
+        [infinite-scroll] {
+          min-height: 50px;
+        }
       </style>
       <script src='http://ajax.googleapis.com/ajax/libs/angularjs/#{angularVersion}/angular.min.js'></script>
       <script src="../../build/ng-infinite-scroll.js"></script>
@@ -149,6 +152,11 @@ describe "ng-infinite-scroll", ->
               expect(getItems().count()).toBe 100
               browser.driver.executeScript(scrollToLastScreenScript(container, 20))
               expect(getItems().count()).toBe 200
+
+            it "do not trigger when element is invisible", -> 
+              replaceIndexFile "style='display: none;'", throttle
+              browser.get pathToDocument
+              expect(getItems().count()).toBe 0
 
             describe "with an event handler", ->
 
