@@ -56,6 +56,7 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
         if container == windowElement
           containerBottom = height(container) + pageYOffset(container[0].document.documentElement)
           elementBottom = offsetTop(elem) + height(elem)
+          containerTopOffset = container.scrollTop()
         else
           containerBottom = height(container)
           containerTopOffset = 0
@@ -68,12 +69,12 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
 
         remaining = elementBottom - containerBottom
         shouldScroll = remaining <= height(container) * scrollDistance + 1
+        
+        remainingTop = containerTopOffset - offsetTop(elem)
+        shouldScrollTop = remainingTop <= height(container) * scrollDistance + 1
       else
         shouldScroll = false
         shouldScrollTop = false
-
-      remainingTop = containerTopOffset - offsetTop(elem)
-      shouldScrollTop = remainingTop <= height(container) * scrollDistance + 1
 
       if shouldScroll
         checkWhenEnabled = true
