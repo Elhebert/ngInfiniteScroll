@@ -2,14 +2,15 @@ mod = angular.module('infinite-scroll', [])
 
 mod.value('THROTTLE_MILLISECONDS', null)
 
-mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE_MILLISECONDS', \
-                                  ($rootScope, $window, $interval, THROTTLE_MILLISECONDS) ->
+mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'THROTTLE_MILLISECONDS', \
+                                  ($rootScope, $window, $interval, $q, THROTTLE_MILLISECONDS) ->
   scope:
     infiniteScroll: '&',
     infiniteScrollTop: '&'
     infiniteScrollContainer: '='
     infiniteScrollDistance: '='
     infiniteScrollDisabled: '='
+    infiniteScrollPromises: '='
     infiniteScrollTopDisabled: '='
     infiniteScrollUseDocumentBottom: '=',
     infiniteScrollListenForEvent: '@'
@@ -24,6 +25,8 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
     container = null
     immediateCheck = true
     useDocumentBottom = false
+    usePromises = false
+    waitForPromise = false
     unregisterEventListener = null
 
     height = (elem) ->
@@ -69,7 +72,7 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
 
         remaining = elementBottom - containerBottom
         shouldScroll = remaining <= height(container) * scrollDistance + 1
-        
+
         remainingTop = containerTopOffset - offsetTop(elem)
         shouldScrollTop = remainingTop <= height(container) * scrollDistance + 1
       else
@@ -80,18 +83,39 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
         checkWhenEnabled = true
 
         if scrollEnabled
-          if scope.$$phase || $rootScope.$$phase
-            scope.infiniteScroll()
+          if usePromises
+            if !waitForPromise
+              waitForPromise = true
+              if scope.$$phase || $rootScope.$$phase
+                $q.when scope.infiniteScroll()
+                  .finally waitForPromise = false
+              else
+                $q.when scope.$apply(scope.infiniteScroll)
+                  .finally waitForPromise = false
+
           else
-            scope.$apply(scope.infiniteScroll)
+            if scope.$$phase || $rootScope.$$phase
+              scope.infiniteScroll()
+            else
+              scope.$apply(scope.infiniteScroll)
       else if shouldScrollTop
         checkWhenEnabled = true
 
         if scrollTopEnabled
-          if scope.$$phase || $rootScope.$$phase
-            scope.infiniteScrollTop()
+          if usePromises
+            if !waitForPromise
+              waitForPromise = true
+              if scope.$$phase || $rootScope.$$phase
+                $q.when scope.infiniteScrollTop()
+                  .finally waitForPromise = false
+              else
+                $q.when scope.$apply(scope.infiniteScrollTop)
+                  .finally waitForPromise = false
           else
-            scope.$apply(scope.infiniteScrollTop)
+            if scope.$$phase || $rootScope.$$phase
+              scope.infiniteScrollTop()
+            else
+              scope.$apply(scope.infiniteScrollTop)
       else
         checkWhenEnabled = false
 
@@ -176,6 +200,15 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', 'THROTTLE
 
     scope.$watch 'infiniteScrollUseDocumentBottom', handleInfiniteScrollUseDocumentBottom
     handleInfiniteScrollUseDocumentBottom scope.infiniteScrollUseDocumentBottom
+
+    # allow to use promises to load more data.
+    # This option will wait for the promise to be resolve before permitting
+    # to resolve a newone.
+    handleInfiniteScrollPromises = (v) ->
+        usePromises = v
+
+    scope.$watch 'infiniteScrollPromises', handleInfiniteScrollPromises
+    handleInfiniteScrollPromises scope.infiniteScrollPromises
 
     # infinite-scroll-container sets the container which we want to be
     # infinte scrolled, instead of the whole window. Must be an
