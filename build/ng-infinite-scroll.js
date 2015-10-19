@@ -1,4 +1,4 @@
-/* ng-infinite-scroll - v1.2.0 - 2015-10-16 */
+/* ng-infinite-scroll - v1.2.0 - 2015-10-19 */
 var mod;
 
 mod = angular.module('infinite-scroll', []);
@@ -94,14 +94,12 @@ mod.directive('infiniteScroll', [
               if (usePromises) {
                 if (!waitForPromise) {
                   waitForPromise = true;
-                  if (scope.$$phase || $rootScope.$$phase) {
-                    promise = scope.infiniteScroll();
-                  } else {
-                    promise = scope.$apply(scope.infiniteScroll);
-                  }
-                  return promise.then(function(result) {
-                    return result.data;
-                  })["finally"](waitForPromise = false);
+                  promise = scope.infiniteScroll();
+                  return promise.then(function() {
+                    if (!(scope.$$phase || $rootScope.$$phase)["finally"](waitForPromise = false)) {
+                      return scope.$apply();
+                    }
+                  });
                 }
               } else {
                 if (scope.$$phase || $rootScope.$$phase) {
@@ -117,13 +115,12 @@ mod.directive('infiniteScroll', [
               if (usePromisesTop) {
                 if (!waitForPromiseTop) {
                   waitForPromiseTop = true;
-                  if (scope.$$phase || $rootScope.$$phase) {
-                    promiseTop = scope.infiniteScrollTop();
-                  } else {
-                    promiseTop = scope.$apply(scope.infiniteScrollTop);
-                  }
-                  return promiseTop.then(function(result) {
-                    return result.data;
+                  promiseTop = $q.when(scope.infiniteScrollTop());
+                  return promiseTop.then(function() {
+                    container[0].scrollTop = container[0].scrollHeight - remaining;
+                    if (!(scope.$$phase || $rootScope.$$phase)) {
+                      scope.$apply();
+                    }
                   })["finally"](waitForPromiseTop = false);
                 }
               } else {

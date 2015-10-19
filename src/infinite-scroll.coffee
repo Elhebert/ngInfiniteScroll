@@ -91,13 +91,10 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
           if usePromises
             if !waitForPromise
               waitForPromise = true
-              if scope.$$phase || $rootScope.$$phase
-                promise = scope.infiniteScroll()
-              else
-                promise = scope.$apply(scope.infiniteScroll)
+              promise = scope.infiniteScroll()
 
-              promise.then (result) ->
-                  return result.data
+              promise.then () ->
+                scope.$apply() unless(scope.$$phase || $rootScope.$$phase)
                 .finally waitForPromise = false
           else
             if scope.$$phase || $rootScope.$$phase
@@ -111,13 +108,12 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
           if usePromisesTop
             if !waitForPromiseTop
               waitForPromiseTop = true
-              if scope.$$phase || $rootScope.$$phase
-                promiseTop = scope.infiniteScrollTop()
-              else
-                promiseTop = scope.$apply(scope.infiniteScrollTop)
+              promiseTop = $q.when scope.infiniteScrollTop()
 
-              promiseTop.then (result) ->
-                  return result.data
+              promiseTop.then () ->
+                  container[0].scrollTop = container[0].scrollHeight - remaining
+                  scope.$apply() unless(scope.$$phase || $rootScope.$$phase)
+                  return
                 .finally waitForPromiseTop = false
           else
             if scope.$$phase || $rootScope.$$phase
