@@ -183,11 +183,6 @@ mod.directive('infiniteScroll', [
           scrollEnabled = !v;
           if (scrollEnabled && checkWhenEnabled) {
             checkWhenEnabled = false;
-            handler();
-          }
-          scrollTopEnabled = !v;
-          if (scrollTopEnabled && checkWhenEnabled) {
-            checkWhenEnabled = false;
             return handler();
           }
         };
