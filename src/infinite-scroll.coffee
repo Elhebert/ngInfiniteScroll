@@ -182,6 +182,10 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
       if scrollEnabled && checkWhenEnabled
         checkWhenEnabled = false
         handler()
+      scrollTopEnabled = !v
+      if scrollTopEnabled && checkWhenEnabled
+        checkWhenEnabled = false
+        handler()
 
     scope.$watch 'infiniteScrollDisabled', handleInfiniteScrollDisabled
     # If I don't explicitly call the handler here, tests fail. Don't know why yet.
