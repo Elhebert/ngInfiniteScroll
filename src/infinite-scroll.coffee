@@ -64,7 +64,7 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
         if container == windowElement
           containerBottom = height(container) + pageYOffset(container[0].document.documentElement)
           elementBottom = offsetTop(elem) + height(elem)
-          containerTopOffset = container.scrollTop()
+          containerTopOffset = container[0].pageYOffset
         else
           containerBottom = height(container)
           containerTopOffset = 0

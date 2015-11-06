@@ -1,4 +1,4 @@
-/* ng-infinite-scroll - v1.2.0 - 2015-10-19 */
+/* ng-infinite-scroll - v1.2.0 - 2015-11-06 */
 var mod;
 
 mod = angular.module('infinite-scroll', []);
@@ -68,7 +68,7 @@ mod.directive('infiniteScroll', [
             if (container === windowElement) {
               containerBottom = height(container) + pageYOffset(container[0].document.documentElement);
               elementBottom = offsetTop(elem) + height(elem);
-              containerTopOffset = container.scrollTop();
+              containerTopOffset = container[0].pageYOffset;
             } else {
               containerBottom = height(container);
               containerTopOffset = 0;
