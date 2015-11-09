@@ -6,7 +6,7 @@ mod = angular.module('infinite-scroll', []);
 mod.value('THROTTLE_MILLISECONDS', null);
 
 mod.directive('infiniteScroll', [
-  '$rootScope', '$window', '$interval', '$q', 'THROTTLE_MILLISECONDS', function($rootScope, $window, $interval, $q, THROTTLE_MILLISECONDS) {
+  '$rootScope', '$window', '$interval', '$q', '$swipe', 'THROTTLE_MILLISECONDS', function($rootScope, $window, $interval, $q, $swipe, THROTTLE_MILLISECONDS) {
     return {
       scope: {
         infiniteScroll: '&',
@@ -21,7 +21,7 @@ mod.directive('infiniteScroll', [
         infiniteScrollListenForEvent: '@'
       },
       link: function(scope, elem, attrs) {
-        var changeContainer, checkWhenEnabled, container, handleInfiniteScrollContainer, handleInfiniteScrollDisabled, handleInfiniteScrollDistance, handleInfiniteScrollPromise, handleInfiniteScrollPromiseTop, handleInfiniteScrollUseDocumentBottom, handleinfiniteScrollTopDisabled, handler, height, immediateCheck, isVisible, offsetTop, pageYOffset, promise, promiseTop, scrollDistance, scrollEnabled, scrollTopEnabled, self, throttle, unregisterEventListener, useDocumentBottom, usePromises, usePromisesTop, waitForPromise, waitForPromiseTop, windowElement;
+        var cancel, changeContainer, checkWhenEnabled, container, handleInfiniteScrollContainer, handleInfiniteScrollDisabled, handleInfiniteScrollDistance, handleInfiniteScrollPromise, handleInfiniteScrollPromiseTop, handleInfiniteScrollUseDocumentBottom, handleinfiniteScrollTopDisabled, handler, height, immediateCheck, isVisible, offsetTop, pageYOffset, promise, promiseTop, scrollDistance, scrollEnabled, scrollTopEnabled, throttle, unregisterEventListener, useDocumentBottom, usePromises, usePromisesTop, waitForPromise, waitForPromiseTop, wheelScroll, windowElement;
         windowElement = angular.element($window);
         scrollDistance = null;
         scrollEnabled = null;
@@ -37,7 +37,6 @@ mod.directive('infiniteScroll', [
         promise = null;
         promiseTop = null;
         unregisterEventListener = null;
-        self = this;
         height = function(elem) {
           elem = elem[0] || elem;
           if (isNaN(elem.offsetHeight)) {
@@ -63,38 +62,14 @@ mod.directive('infiniteScroll', [
             return elem.ownerDocument.defaultView.pageYOffset;
           }
         };
-        windowElement.on('wheel', (function(e) {
+        cancel = function() {
+          return handler();
+        };
+        wheelScroll = function(e) {
           if (e.deltaY > 0 || e.deltaY < 0) {
             return handler();
           }
-        }));
-        windowElement.on('touchstart', function(evt) {
-          self.xDown = evt.touches[0].clientX;
-          self.yDown = evt.touches[0].clientY;
-        });
-        windowElement.on('touchmove', function(evt) {
-          if (!self.xDown || !self.yDown) {
-            return;
-          }
-          self.xUp = evt.touches[0].clientX;
-          self.yUp = evt.touches[0].clientY;
-        });
-        windowElement.on('touchend', function() {
-          var xDiff, yDiff;
-          xDiff = self.xDown - self.xUp;
-          yDiff = self.yDown - self.yUp;
-          if (Math.abs(xDiff) < Math.abs(yDiff)) {
-            if (yDiff > 0 || yDiff < 0) {
-              return handler();
-            }
-          }
-          self.xDown = null;
-          self.yDown = null;
-        });
-        self.xDown = null;
-        self.yDown = null;
-        self.xUp = null;
-        self.yUp = null;
+        };
         handler = function() {
           var containerBottom, containerTopOffset, elementBottom, remaining, remainingTop, shouldScroll, shouldScrollTop;
           if (isVisible(elem)) {
@@ -128,28 +103,32 @@ mod.directive('infiniteScroll', [
                 if (!waitForPromise) {
                   waitForPromise = true;
                   promise = scope.infiniteScroll();
-                  return promise.then(function() {
+                  promise.then(function() {
                     if (!(scope.$$phase || $rootScope.$$phase)["finally"](waitForPromise = false)) {
                       return scope.$apply();
                     }
                   });
+                  return;
                 }
               } else {
                 if (scope.$$phase || $rootScope.$$phase) {
-                  return scope.infiniteScroll();
+                  scope.infiniteScroll();
+                  return;
                 } else {
-                  return scope.$apply(scope.infiniteScroll);
+                  scope.$apply(scope.infiniteScroll);
+                  return;
                 }
               }
             }
-          } else if (shouldScrollTop) {
+          }
+          if (shouldScrollTop) {
             checkWhenEnabled = true;
             if (scrollTopEnabled) {
               if (usePromisesTop) {
                 if (!waitForPromiseTop) {
                   waitForPromiseTop = true;
                   promiseTop = $q.when(scope.infiniteScrollTop());
-                  return promiseTop.then(function() {
+                  promiseTop.then(function() {
                     container[0].scrollTop = container[0].scrollHeight - remaining;
                     if (!(scope.$$phase || $rootScope.$$phase)) {
                       scope.$apply();
@@ -158,9 +137,9 @@ mod.directive('infiniteScroll', [
                 }
               } else {
                 if (scope.$$phase || $rootScope.$$phase) {
-                  return scope.infiniteScrollTop();
+                  scope.infiniteScrollTop();
                 } else {
-                  return scope.$apply(scope.infiniteScrollTop);
+                  scope.$apply(scope.infiniteScrollTop);
                 }
               }
             }
@@ -248,9 +227,15 @@ mod.directive('infiniteScroll', [
         changeContainer = function(newContainer) {
           if (container != null) {
             container.unbind('scroll', handler);
+            container.unbind('wheel', wheelScroll);
+            container.unbind('touchcancel', cancel);
           }
           container = newContainer;
           if (newContainer != null) {
+            container.bind('wheel', wheelScroll);
+            $swipe.bind(container, {
+              cancel: cancel
+            }, ['touch']);
             return container.bind('scroll', handler);
           }
         };

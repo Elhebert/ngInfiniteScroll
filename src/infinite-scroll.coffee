@@ -2,8 +2,8 @@ mod = angular.module('infinite-scroll', [])
 
 mod.value('THROTTLE_MILLISECONDS', null)
 
-mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'THROTTLE_MILLISECONDS', \
-                                  ($rootScope, $window, $interval, $q, THROTTLE_MILLISECONDS) ->
+mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', '$swipe', 'THROTTLE_MILLISECONDS', \
+                                  ($rootScope, $window, $interval, $q, $swipe, THROTTLE_MILLISECONDS) ->
   scope:
     infiniteScroll: '&',
     infiniteScrollTop: '&'
@@ -33,7 +33,6 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
     promise = null
     promiseTop = null
     unregisterEventListener = null
-    self = this
 
     height = (elem) ->
       elem = elem[0] or elem
@@ -54,41 +53,12 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
 
       if isNaN(window.pageYOffset) then elem.document.documentElement.scrollTop else elem.ownerDocument.defaultView.pageYOffset
 
-    windowElement.on('wheel', ((e) ->
+    cancel = ->
+      handler()
+
+    wheelScroll = (e) ->
       if e.deltaY > 0 or e.deltaY < 0
         handler()
-    ))
-
-    windowElement.on('touchstart', (evt) ->
-      self.xDown = evt.touches[0].clientX
-      self.yDown = evt.touches[0].clientY
-      return
-    )
-    windowElement.on('touchmove', (evt) ->
-      if !self.xDown or !self.yDown
-        return
-
-      self.xUp = evt.touches[0].clientX
-      self.yUp = evt.touches[0].clientY
-      return
-    )
-    windowElement.on('touchend', () ->
-      xDiff = self.xDown - self.xUp
-      yDiff = self.yDown - self.yUp
-
-      if Math.abs(xDiff) < Math.abs(yDiff)
-        if yDiff > 0 or yDiff < 0
-          return handler()
-
-      self.xDown = null
-      self.yDown = null
-      return
-    )
-
-    self.xDown = null
-    self.yDown = null
-    self.xUp = null
-    self.yUp = null
 
     # infinite-scroll specifies a function to call when the window,
     # or some other container specified by infinite-scroll-container,
@@ -133,12 +103,15 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
               promise.then () ->
                 scope.$apply() unless(scope.$$phase || $rootScope.$$phase)
                 .finally waitForPromise = false
+              return
           else
             if scope.$$phase || $rootScope.$$phase
               scope.infiniteScroll()
+              return
             else
               scope.$apply(scope.infiniteScroll)
-      else if shouldScrollTop
+              return
+      if shouldScrollTop
         checkWhenEnabled = true
 
         if scrollTopEnabled
@@ -152,11 +125,14 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
                   scope.$apply() unless(scope.$$phase || $rootScope.$$phase)
                   return
                 .finally waitForPromiseTop = false
+              return
           else
             if scope.$$phase || $rootScope.$$phase
               scope.infiniteScrollTop()
+              return
             else
               scope.$apply(scope.infiniteScrollTop)
+              return
       else
         checkWhenEnabled = false
 
@@ -264,9 +240,13 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
     changeContainer = (newContainer) ->
       if container?
         container.unbind 'scroll', handler
+        container.unbind 'wheel', wheelScroll
+        container.unbind 'touchcancel', cancel
 
       container = newContainer
       if newContainer?
+        container.bind 'wheel', wheelScroll
+        $swipe.bind container, { cancel }, [ 'touch' ]
         container.bind 'scroll', handler
 
     changeContainer windowElement
