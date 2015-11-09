@@ -1,4 +1,4 @@
-/* ng-infinite-scroll - v1.2.0 - 2015-11-06 */
+/* ng-infinite-scroll - v1.2.0 - 2015-11-09 */
 var mod;
 
 mod = angular.module('infinite-scroll', []);
@@ -62,6 +62,11 @@ mod.directive('infiniteScroll', [
             return elem.ownerDocument.defaultView.pageYOffset;
           }
         };
+        windowElement.on('wheel', (function(e) {
+          if (e.deltaY > 0 || e.deltaY < 0) {
+            return handler();
+          }
+        }));
         handler = function() {
           var containerBottom, containerTopOffset, elementBottom, remaining, remainingTop, shouldScroll, shouldScrollTop;
           if (isVisible(elem)) {

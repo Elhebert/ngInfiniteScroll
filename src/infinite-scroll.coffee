@@ -53,6 +53,11 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
 
       if isNaN(window.pageYOffset) then elem.document.documentElement.scrollTop else elem.ownerDocument.defaultView.pageYOffset
 
+    windowElement.on('wheel', ((e) ->
+      if e.deltaY > 0 or e.deltaY < 0
+        handler()
+    ))
+
     # infinite-scroll specifies a function to call when the window,
     # or some other container specified by infinite-scroll-container,
     # is scrolled within a certain range from the bottom of the
