@@ -33,6 +33,7 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
     promise = null
     promiseTop = null
     unregisterEventListener = null
+    self = this
 
     height = (elem) ->
       elem = elem[0] or elem
@@ -57,6 +58,37 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', 'TH
       if e.deltaY > 0 or e.deltaY < 0
         handler()
     ))
+
+    windowElement.on('touchstart', (evt) ->
+      self.xDown = evt.touches[0].clientX
+      self.yDown = evt.touches[0].clientY
+      return
+    )
+    windowElement.on('touchmove', (evt) ->
+      if !self.xDown or !self.yDown
+        return
+
+      self.xUp = evt.touches[0].clientX
+      self.yUp = evt.touches[0].clientY
+      return
+    )
+    windowElement.on('touchend', () ->
+      xDiff = self.xDown - self.xUp
+      yDiff = self.yDown - self.yUp
+
+      if Math.abs(xDiff) < Math.abs(yDiff)
+        if yDiff > 0 or yDiff < 0
+          return handler()
+
+      self.xDown = null
+      self.yDown = null
+      return
+    )
+
+    self.xDown = null
+    self.yDown = null
+    self.xUp = null
+    self.yUp = null
 
     # infinite-scroll specifies a function to call when the window,
     # or some other container specified by infinite-scroll-container,

@@ -21,7 +21,7 @@ mod.directive('infiniteScroll', [
         infiniteScrollListenForEvent: '@'
       },
       link: function(scope, elem, attrs) {
-        var changeContainer, checkWhenEnabled, container, handleInfiniteScrollContainer, handleInfiniteScrollDisabled, handleInfiniteScrollDistance, handleInfiniteScrollPromise, handleInfiniteScrollPromiseTop, handleInfiniteScrollUseDocumentBottom, handleinfiniteScrollTopDisabled, handler, height, immediateCheck, isVisible, offsetTop, pageYOffset, promise, promiseTop, scrollDistance, scrollEnabled, scrollTopEnabled, throttle, unregisterEventListener, useDocumentBottom, usePromises, usePromisesTop, waitForPromise, waitForPromiseTop, windowElement;
+        var changeContainer, checkWhenEnabled, container, handleInfiniteScrollContainer, handleInfiniteScrollDisabled, handleInfiniteScrollDistance, handleInfiniteScrollPromise, handleInfiniteScrollPromiseTop, handleInfiniteScrollUseDocumentBottom, handleinfiniteScrollTopDisabled, handler, height, immediateCheck, isVisible, offsetTop, pageYOffset, promise, promiseTop, scrollDistance, scrollEnabled, scrollTopEnabled, self, throttle, unregisterEventListener, useDocumentBottom, usePromises, usePromisesTop, waitForPromise, waitForPromiseTop, windowElement;
         windowElement = angular.element($window);
         scrollDistance = null;
         scrollEnabled = null;
@@ -37,6 +37,7 @@ mod.directive('infiniteScroll', [
         promise = null;
         promiseTop = null;
         unregisterEventListener = null;
+        self = this;
         height = function(elem) {
           elem = elem[0] || elem;
           if (isNaN(elem.offsetHeight)) {
@@ -67,6 +68,33 @@ mod.directive('infiniteScroll', [
             return handler();
           }
         }));
+        windowElement.on('touchstart', function(evt) {
+          self.xDown = evt.touches[0].clientX;
+          self.yDown = evt.touches[0].clientY;
+        });
+        windowElement.on('touchmove', function(evt) {
+          if (!self.xDown || !self.yDown) {
+            return;
+          }
+          self.xUp = evt.touches[0].clientX;
+          self.yUp = evt.touches[0].clientY;
+        });
+        windowElement.on('touchend', function() {
+          var xDiff, yDiff;
+          xDiff = self.xDown - self.xUp;
+          yDiff = self.yDown - self.yUp;
+          if (Math.abs(xDiff) < Math.abs(yDiff)) {
+            if (yDiff > 0 || yDiff < 0) {
+              return handler();
+            }
+          }
+          self.xDown = null;
+          self.yDown = null;
+        });
+        self.xDown = null;
+        self.yDown = null;
+        self.xUp = null;
+        self.yUp = null;
         handler = function() {
           var containerBottom, containerTopOffset, elementBottom, remaining, remainingTop, shouldScroll, shouldScrollTop;
           if (isVisible(elem)) {
