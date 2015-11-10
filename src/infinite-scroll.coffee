@@ -5,34 +5,28 @@ mod.value('THROTTLE_MILLISECONDS', null)
 mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', '$swipe', 'THROTTLE_MILLISECONDS', \
                                   ($rootScope, $window, $interval, $q, $swipe, THROTTLE_MILLISECONDS) ->
   scope:
-    infiniteScroll: '&',
-    infiniteScrollTop: '&'
+    infiniteScroll: '&'
     infiniteScrollContainer: '='
-    infiniteScrollDistance: '='
     infiniteScrollDisabled: '='
-    infiniteScrollPromise: '='
-    infiniteScrollPromiseTop: '='
-    infiniteScrollTopDisabled: '='
-    infiniteScrollUseDocumentBottom: '=',
+    infiniteScrollDistance: '='
     infiniteScrollListenForEvent: '@'
+    infiniteScrollPromise: '='
+    infiniteScrollUseDocumentBottom: '='
 
   link: (scope, elem, attrs) ->
-    windowElement = angular.element($window)
 
-    scrollDistance = null
-    scrollEnabled = null
-    scrollTopEnabled = null
     checkWhenEnabled = null
     container = null
     immediateCheck = true
+    promise = null
+    scrollDirection = attrs.infiniteScrollDirection or 'bottom'
+    scrollDistance = null
+    scrollEnabled = null
     useDocumentBottom = false
     usePromises = false
-    usePromisesTop = false
-    waitForPromise = false
-    waitForPromiseTop = false
-    promise = null
-    promiseTop = null
     unregisterEventListener = null
+    waitForPromise = false
+    windowElement = angular.element($window)
 
     height = (elem) ->
       elem = elem[0] or elem
@@ -79,17 +73,17 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', '$s
             containerTopOffset = offsetTop(container)
           elementBottom = offsetTop(elem) - containerTopOffset + height(elem)
 
-        if(useDocumentBottom)
+        if useDocumentBottom
           elementBottom = height((elem[0].ownerDocument || elem[0].document).documentElement)
 
-        remaining = elementBottom - containerBottom
-        shouldScroll = remaining <= height(container) * scrollDistance + 1
+        if scrollDirection == 'bottom'
+          remaining = elementBottom - containerBottom
+        else if scrollDirection == 'top'
+          remaining = containerTopOffset - offsetTop(elem)
 
-        remainingTop = containerTopOffset - offsetTop(elem)
-        shouldScrollTop = remainingTop <= height(container) * scrollDistance + 1
+        shouldScroll = remaining <= height(container) * scrollDistance + 1
       else
         shouldScroll = false
-        shouldScrollTop = false
 
       if shouldScroll
         checkWhenEnabled = true
@@ -102,37 +96,12 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', '$s
 
               promise.then () ->
                 scope.$apply() unless(scope.$$phase || $rootScope.$$phase)
-                .finally waitForPromise = false
-              return
+              .finally waitForPromise = false
           else
             if scope.$$phase || $rootScope.$$phase
               scope.infiniteScroll()
-              return
             else
               scope.$apply(scope.infiniteScroll)
-              return
-      if shouldScrollTop
-        checkWhenEnabled = true
-
-        if scrollTopEnabled
-          if usePromisesTop
-            if !waitForPromiseTop
-              waitForPromiseTop = true
-              promiseTop = $q.when scope.infiniteScrollTop()
-
-              promiseTop.then () ->
-                  container[0].scrollTop = container[0].scrollHeight - remaining
-                  scope.$apply() unless(scope.$$phase || $rootScope.$$phase)
-                  return
-                .finally waitForPromiseTop = false
-              return
-          else
-            if scope.$$phase || $rootScope.$$phase
-              scope.infiniteScrollTop()
-              return
-            else
-              scope.$apply(scope.infiniteScrollTop)
-              return
       else
         checkWhenEnabled = false
 
@@ -200,15 +169,6 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', '$s
     # If I don't explicitly call the handler here, tests fail. Don't know why yet.
     handleInfiniteScrollDisabled scope.infiniteScrollDisabled
 
-    handleinfiniteScrollTopDisabled = (v) ->
-          scrollTopEnabled = !v
-          if scrollTopEnabled && checkWhenEnabled
-            checkWhenEnabled = false
-            handler()
-
-    scope.$watch 'infiniteScrollTopDisabled', handleinfiniteScrollTopDisabled
-    handleinfiniteScrollTopDisabled scope.infiniteScrollTopDisabled
-
     # use the bottom of the document instead of the element's bottom.
     # This useful when the element does not have a height due to its
     # children being absolute positioned.
@@ -226,12 +186,6 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', '$s
 
     scope.$watch 'infiniteScrollPromise', handleInfiniteScrollPromise
     handleInfiniteScrollPromise scope.infiniteScrollPromise
-
-    handleInfiniteScrollPromiseTop = (v) ->
-        usePromisesTop = v
-
-    scope.$watch 'infiniteScrollPromiseTop', handleInfiniteScrollPromiseTop
-    handleInfiniteScrollPromiseTop scope.infiniteScrollPromiseTop
 
     # infinite-scroll-container sets the container which we want to be
     # infinte scrolled, instead of the whole window. Must be an
