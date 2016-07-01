@@ -1,4 +1,4 @@
-/* ng-infinite-scroll - v1.2.0 - 2015-11-10 */
+/* ng-infinite-scroll - v1.2.0 - 2016-07-01 */
 var mod;
 
 mod = angular.module('infinite-scroll', []);

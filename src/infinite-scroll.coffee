@@ -179,8 +179,7 @@ mod.directive 'infiniteScroll', ['$rootScope', '$window', '$interval', '$q', '$s
     handleInfiniteScrollUseDocumentBottom scope.infiniteScrollUseDocumentBottom
 
     # allow to use promises to load more data.
-    # This option will wait for the promise to be resolve before permitting
-    # to resolve a newone.
+    # When true, ngInfiniteScroll will await each promise serially.
     handleInfiniteScrollPromise = (v) ->
         usePromises = v
 
